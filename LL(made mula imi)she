@@ -272,21 +272,23 @@ local HardSuffixScores = {
     made  = 6,
     imi   = 4,
     nei   = 4,
+    inor  = 4, -- Ganti gy ke inor, skor 4
     lae   = 2,
-    gy    = 1,   -- diubah dari ky jadi gy
-    gh    = 1,   -- tambah baru skor 1
+    gh    = 1, -- Tetap skor 1
 }
 
 local function GetKillerScore(word)
     local killerSuffixes = {
         "mula", "made",   -- skor 6
         "imi", "nei",     -- skor 4
+        "inor",           -- skor 4 (baru)
         "lae",            -- skor 2
-        "gy", "gh"        -- skor 1 (gy diganti dari ky, + tambah gh)
+        "gh"              -- skor 1
     }
     
     for _, suf in ipairs(killerSuffixes) do
         if #word >= #suf and word:sub(-#suf) == suf then
+            -- Mengambil skor langsung dari tabel HardSuffixScores
             return HardSuffixScores[suf] or 0
         end
     end
