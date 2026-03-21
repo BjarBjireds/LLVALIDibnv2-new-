@@ -266,16 +266,18 @@ local function shuffleTable(t)
     return t
 end
 
--- Table skor: tier utama skor 6, menengah skor 4, rendah skor 2
+-- Table skor: tier legendaris skor 8, utama skor 6, menengah skor 4, rendah skor 2
 local HardSuffixScores = {
-    -- Tier utama (skor 6) - prioritas tertinggi
+    -- Tier Legendaris (skor 8)
+    xy    = 8, -- Naik ke skor 8
+    
+    -- Tier utama (skor 6)
     pode  = 6,
     enne  = 6, 
     chre  = 6,
     taph  = 6,
     
     -- Tier menengah (skor 4)
-    xy    = 4, -- Pindah ke skor 4
     ich   = 4, 
     och   = 4, 
     made  = 4,
@@ -288,8 +290,9 @@ local HardSuffixScores = {
 local function GetKillerScore(word)
     -- List suffix killer, diurutkan PANJANG → PENDEK
     local killerSuffixes = {
+        "xy",                                     -- skor 8
         "pode", "enne", "chre", "taph",           -- skor 6
-        "made", "acan", "ich", "och", "xy",       -- skor 4
+        "made", "acan", "ich", "och",             -- skor 4
         "ly"                                      -- skor 2
     }
     
