@@ -270,21 +270,21 @@ end
 local HardSuffixScores = {
     -- Tier utama (skor 6)
     mula  = 6,
-    uric  = 6, -- Suffix baru skor 6
+    uric  = 6, 
     
     -- Tier menengah (skor 4)
-    ich   = 4, -- Suffix baru skor 4
-    och   = 4, -- Suffix baru skor 4
+    elae  = 4, -- Ganti dari ich (skor 4)
+    och   = 4, 
     
     -- Tier rendah (skor 2)
-    xy    = 2, -- Suffix baru skor 2
+    xy    = 2, 
 }
 
 local function GetKillerScore(word)
     -- List suffix killer, diurutkan PANJANG → PENDEK
     local killerSuffixes = {
         "mula", "uric",      -- skor 6
-        "ich", "och",        -- skor 4
+        "elae", "och",       -- skor 4
         "xy"                 -- skor 2
     }
     
