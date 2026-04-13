@@ -279,8 +279,8 @@ local HardSuffixScores = {
     
     -- Tier menengah (skor 4)
     pode  = 4, 
-    gn    = 4, 
-    vere  = 4, -- Menggantikan enta
+    hua   = 4, -- Menggantikan gn
+    vere  = 4, 
     xy    = 4, 
     
     -- Tier rendah (skor 2)
@@ -291,8 +291,8 @@ local function GetKillerScore(word)
     -- List suffix killer, diurutkan PANJANG (4+) → PENDEK (3-2)
     local killerSuffixes = {
         "pode", "enne", "vere", "sque", "quer", "zant", -- Suffix 4+ huruf
-        "zar",                                          -- Suffix 3 huruf
-        "gn", "xy", "ly"                                -- Suffix 2 huruf
+        "zar", "hua",                                   -- Suffix 3 huruf
+        "xy", "ly"                                      -- Suffix 2 huruf
     }
     
     for _, suf in ipairs(killerSuffixes) do
