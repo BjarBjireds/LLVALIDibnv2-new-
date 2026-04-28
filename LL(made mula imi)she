@@ -268,22 +268,19 @@ end
 
 -- Table skor: dioptimasi mobile - skor lebih rendah & suffix lebih sedikit
 local HardSuffixScores = {
-    mula  = 6,
     made  = 6,
     imi   = 4,
     nei   = 4,
     inor  = 4, -- Ganti gy ke inor, skor 4
     lae   = 2,
-    gh    = 1, -- Tetap skor 1
 }
 
 local function GetKillerScore(word)
     local killerSuffixes = {
-        "mula", "made",   -- skor 6
+        "made",           -- skor 6
+        "inor",           -- skor 4 (4 huruf dicek duluan)
         "imi", "nei",     -- skor 4
-        "inor",           -- skor 4 (baru)
-        "lae",            -- skor 2
-        "gh"              -- skor 1
+        "lae"             -- skor 2
     }
     
     for _, suf in ipairs(killerSuffixes) do
