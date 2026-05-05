@@ -269,7 +269,7 @@ end
 -- Table skor: tier legendaris skor 8, utama skor 6, menengah skor 4, rendah skor 2
 local HardSuffixScores = {
     -- Tier Legendaris (skor 8)
-    alve  = 8, -- Menggantikan zant
+    alve  = 8, 
     
     -- Tier utama (skor 6)
     sque  = 6, 
@@ -278,10 +278,10 @@ local HardSuffixScores = {
     zar   = 6, 
     
     -- Tier menengah (skor 4)
-    pode  = 4, 
+    made  = 4, -- Menggantikan pode
     hua   = 4, 
     vere  = 4, 
-    xy    = 4, 
+    tsi   = 4, -- Menggantikan xy
     
     -- Tier rendah (skor 2)
     ly    = 2, 
@@ -290,9 +290,9 @@ local HardSuffixScores = {
 local function GetKillerScore(word)
     -- List suffix killer, diurutkan PANJANG (4+) → PENDEK (3-2)
     local killerSuffixes = {
-        "pode", "enne", "vere", "sque", "quer", "alve", -- Suffix 4+ huruf
-        "zar", "hua",                                   -- Suffix 3 huruf
-        "xy", "ly"                                      -- Suffix 2 huruf
+        "made", "enne", "vere", "sque", "quer", "alve", -- Suffix 4+ huruf
+        "zar", "hua", "tsi",                            -- Suffix 3 huruf
+        "ly"                                            -- Suffix 2 huruf
     }
     
     for _, suf in ipairs(killerSuffixes) do
