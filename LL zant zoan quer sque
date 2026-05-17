@@ -269,17 +269,17 @@ end
 -- Table skor: tier legendaris skor 8, utama skor 6, menengah skor 4, rendah skor 2
 local HardSuffixScores = {
     -- Tier Legendaris (skor 8)
-    ion   = 8, -- Menggantikan agra
+    quin  = 8, -- Naik ke skor 8
     
     -- Tier utama (skor 6)
-    quin  = 6, 
+    enta  = 6, -- Naik ke skor 6
     aman  = 6, 
     enne  = 6,
-    ines  = 6, -- Menggantikan tsi
+    ines  = 6, 
     
     -- Tier menengah (skor 4)
     pode  = 4, 
-    enta  = 4, 
+    ion   = 4, -- Turun ke skor 4
     
     -- Tier rendah (skor 2)
     ly    = 2, 
