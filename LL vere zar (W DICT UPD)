@@ -270,11 +270,11 @@ end
 local HardSuffixScores = {
     -- Tier Legendaris (skor 8)
     unct  = 8, 
+    diac  = 8, -- Menggantikan sque (Naik ke skor 8)
     
     -- Tier utama (skor 6)
-    sque  = 6, 
     quer  = 6, 
-    agra  = 6, -- Menggantikan enne
+    agra  = 6, 
     alve  = 6, 
     
     -- Tier menengah (skor 4)
@@ -290,7 +290,7 @@ local HardSuffixScores = {
 local function GetKillerScore(word)
     -- List suffix killer, diurutkan PANJANG (4+) → PENDEK (3-2)
     local killerSuffixes = {
-        "made", "agra", "vere", "sque", "quer", "alve", "unct", -- Suffix 4+ huruf
+        "made", "agra", "vere", "quer", "alve", "unct", "diac", -- Suffix 4+ huruf
         "hua", "tsi",                                          -- Suffix 3 huruf
         "ly"                                                   -- Suffix 2 huruf
     }
