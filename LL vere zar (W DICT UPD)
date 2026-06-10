@@ -2823,3 +2823,82 @@ inputConn = UserInputService.InputBegan:Connect(function(input)
     if unloaded then return end
     if input.KeyCode == TOGGLE_KEY then ScreenGui.Enabled = not ScreenGui.Enabled end
 end)
+
+-- ========================================================
+-- LOGSERVICE CONSOLE SPY (FINAL V7.6 - CLEAN FILTER EDITION)
+-- ========================================================
+local Players = game:GetService("Players")
+local LogService = game:GetService("LogService")
+local LocalPlayer = Players.LocalPlayer
+
+_G.KataDihapus = _G.KataDihapus or {}
+_G.KataTerakhirDiketik = ""
+_G.WaktuKetik = 0
+
+-- [1] CONSOLE SPY DENGAN TIMER ANTI-NIL NYASAR (100% AKURAT)
+LogService.MessageOut:Connect(function(message, messageType)
+    local kataTerdeteksi = message:match("Word:%s*(%w+)")
+    if kataTerdeteksi then
+        _G.KataTerakhirDiketik = string.gsub(kataTerdeteksi:lower(), "%s+", "")
+        _G.WaktuKetik = tick()
+    end
+
+    if message:match("^%s*nil%s*$") then
+        if _G.KataTerakhirDiketik ~= "" and (tick() - _G.WaktuKetik <= 1.5) then
+            local kataSalah = _G.KataTerakhirDiketik
+            
+            if not table.find(_G.KataDihapus, kataSalah) then
+                table.insert(_G.KataDihapus, kataSalah)
+                
+                -- Menggunakan warn() agar masuk kategori "Warning" (Warna Kuning) di F9
+                warn("❌ [KATA CACAT DIBLACKLIST] -> " .. kataSalah:upper())
+            end
+            
+            _G.KataTerakhirDiketik = ""
+        end
+    end
+end)
+
+-- [2] AUTO-GUI INJECTOR (Tombol Removed Words)
+task.spawn(function()
+    local serverBrowserBtn = nil
+    while not serverBrowserBtn do
+        task.wait(1)
+        for _, v in pairs(game.CoreGui:GetDescendants()) do
+            if v:IsA("TextButton") and v.Text == "Server Browser" then serverBrowserBtn = v break end
+        end
+        if not serverBrowserBtn then
+            for _, v in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                if v:IsA("TextButton") and v.Text == "Server Browser" then serverBrowserBtn = v break end
+            end
+        end
+    end
+
+    if serverBrowserBtn and not serverBrowserBtn.Parent:FindFirstChild("RemovedWordsBtn") then
+        local RemovedWordsBtn = serverBrowserBtn:Clone()
+        RemovedWordsBtn.Name = "RemovedWordsBtn"
+        RemovedWordsBtn.Text = "Removed Words (0)"
+        RemovedWordsBtn.TextColor3 = Color3.fromRGB(255, 110, 110)
+        RemovedWordsBtn.Parent = serverBrowserBtn.Parent
+
+        task.spawn(function()
+            while task.wait(0.4) do
+                if RemovedWordsBtn and RemovedWordsBtn.Parent then
+                    RemovedWordsBtn.Text = "Removed Words (" .. #_G.KataDihapus .. ")"
+                end
+            end
+        end)
+
+        RemovedWordsBtn.MouseButton1Click:Connect(function()
+            if #_G.KataDihapus == 0 then
+                RemovedWordsBtn.Text = "Belum Ada Kata Cacat!"
+                task.wait(1.5)
+                return
+            end
+            local teksUntukDisave = table.concat(_G.KataDihapus, "\n")
+            writefile("Daftar_Hapus_LL.txt", teksUntukDisave)
+            RemovedWordsBtn.Text = "✅ Saved to Workspace!"
+            task.wait(1.5)
+        end)
+    end
+end)
