@@ -2825,32 +2825,44 @@ inputConn = UserInputService.InputBegan:Connect(function(input)
 end)
 
 -- ========================================================
--- LOGSERVICE CONSOLE SPY (FINAL V7.6 - CLEAN FILTER EDITION)
+-- LOGSERVICE CONSOLE SPY (FINAL V7.7 - ANTI DUPLICATE FIX)
 -- ========================================================
 local Players = game:GetService("Players")
 local LogService = game:GetService("LogService")
 local LocalPlayer = Players.LocalPlayer
 
 _G.KataDihapus = _G.KataDihapus or {}
+_G.KataTerpakai = _G.KataTerpakai or {} -- [BARU] Menyimpan history kata yang sudah diketik
 _G.KataTerakhirDiketik = ""
 _G.WaktuKetik = 0
+_G.AbaikanNil = false -- [BARU] Tombol pengaman untuk kata duplikat
 
--- [1] CONSOLE SPY DENGAN TIMER ANTI-NIL NYASAR (100% AKURAT)
+-- [1] CONSOLE SPY DENGAN FILTER DUPLIKAT
 LogService.MessageOut:Connect(function(message, messageType)
     local kataTerdeteksi = message:match("Word:%s*(%w+)")
     if kataTerdeteksi then
-        _G.KataTerakhirDiketik = string.gsub(kataTerdeteksi:lower(), "%s+", "")
+        local kata = string.lower(kataTerdeteksi)
+        kata = string.gsub(kata, "%s+", "")
+        
+        _G.KataTerakhirDiketik = kata
         _G.WaktuKetik = tick()
+
+        -- Cek apakah kata ini sudah pernah diketik sebelumnya di ronde ini
+        if table.find(_G.KataTerpakai, kata) then
+            _G.AbaikanNil = true -- Ini kata valid tapi duplikat, amankan dari blacklist!
+        else
+            table.insert(_G.KataTerpakai, kata)
+            _G.AbaikanNil = false -- Ini kata baru, awasi apakah server merespon nil
+        end
     end
 
     if message:match("^%s*nil%s*$") then
-        if _G.KataTerakhirDiketik ~= "" and (tick() - _G.WaktuKetik <= 1.5) then
+        -- Hanya blacklist jika bukan duplikat dan masih dalam rentang waktu 1.5 detik
+        if not _G.AbaikanNil and _G.KataTerakhirDiketik ~= "" and (tick() - _G.WaktuKetik <= 1.5) then
             local kataSalah = _G.KataTerakhirDiketik
             
             if not table.find(_G.KataDihapus, kataSalah) then
                 table.insert(_G.KataDihapus, kataSalah)
-                
-                -- Menggunakan warn() agar masuk kategori "Warning" (Warna Kuning) di F9
                 warn("❌ [KATA CACAT DIBLACKLIST] -> " .. kataSalah:upper())
             end
             
