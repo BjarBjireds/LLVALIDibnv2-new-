@@ -2254,6 +2254,17 @@ UpdateList = function(detectedText, requiredLetter)
                 -- Check for main list filtering (prefix/suffix/length)
                 if prefixMode ~= "" and w:sub(1, #prefixMode) ~= prefixMode then return end
                 if suffixMode ~= "" and w:sub(-#suffixMode) ~= suffixMode then return end
+                if lengthMode and lengthMode > 0 and #w ~= lengthMode then return end
+
+                -- BYPASS SYARAT GAME JIKA SEDANG SEARCHING
+                -- Jika kolom pencarian terisi, paksa script untuk mengabaikan huruf yang diminta game
+                if prefixMode ~= "" or suffixMode ~= "" then
+                -- Biarkan lolos tanpa dicek variabel 'req' (huruf game)
+                else
+                -- Pengecekan normal saat tidak sedang mencari kata
+                -- (Pastikan variabel 'req' sesuai dengan bawaan script kamu)
+                    if req and not string.find(string.lower(w), string.lower(req)) then return end
+                end
                 
                 local isLengthMatch = true
                 if not tryFallbackLengths and lengthMode > 0 then
@@ -2292,12 +2303,20 @@ UpdateList = function(detectedText, requiredLetter)
                         
                         checkWord(w)
                         
-                        count = count + 1
-                        if count >= 3000 then break end
+                        -- === FIX LOGIC COCOK DI SINI ===
+                        if prefixMode ~= "" or suffixMode ~= "" then
+                            -- Jika lagi nyari di Word Browser, batasi berdasarkan KATA YANG BERHASIL COCOK
+                            if #exacts >= 100 then break end
+                        else
+                            -- Jika lagi main normal, pakai hitungan asli bawaan script abang (max 3000 cek)
+                            count = count + 1
+                            if count >= 3000 then break end
+                        end
+                        -- ===============================
                     end
                 end
             else
-                local searchLimit = (sortMode == "Random") and 1000 or limit
+                local searchLimit = (prefixMode ~= "" or suffixMode ~= "") and 100 or ((sortMode == "Random") and 1000 or limit)
                 for _, w in ipairs(bucket) do
                     checkWord(w)
                     if #exacts >= searchLimit then break end
