@@ -144,7 +144,7 @@ logConn = LogService.MessageOut:Connect(function(message, type)
     end
 end)
 
-local url = "https://raw.githubusercontent.com/BjarBjireds/DictionaryLLgwehj/refs/heads/main/LLnewUPDDICT%2BADDDICT"
+local url = "https://raw.githubusercontent.com/BjarBjireds/DictionaryLLgwehj/refs/heads/main/LL%20DICT%20(5-mey-26%20upd).txt"
 local fileName = "ultimate_words_v4.txt"
 
 -- Temporary Loading UI
