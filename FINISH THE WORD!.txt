@@ -369,14 +369,11 @@ end
     return letter:lower()
 end
 
-local function GetTurnInfo(providedFrame)
-    if isMyTurnLogDetected then
-        if tick() < turnExpiryTime then
-            return true, logRequiredLetters
-        else
-            isMyTurnLogDetected = false
-        end
-    end
+local function GetTurnInfo()
+    -- Memaksa script agar selalu menganggap game sedang berjalan 
+    -- supaya real-time search-nya aktif terus sepanjang waktu
+    return true, true
+end
 
     local frame = providedFrame
     if not frame then
