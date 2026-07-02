@@ -344,13 +344,27 @@ end
     return detected
 end
 
-    local QuestionLabel = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.TopBar.Question.QuestionLabel
-
-local function GetCurrentGameWord()
-    if not QuestionLabel then return "" end
-    local text = QuestionLabel.Text
+    local function GetCurrentGameWord()
+    local localPlayer = game:GetService("Players").LocalPlayer
+    if not localPlayer then return "" end
     
-    -- Mengambil 1 huruf perintah di layar (misal "starting with Z" diambil huruf Z nya saja)
+    local playerGui = localPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return "" end
+    
+    -- Mencari ScreenGui dengan aman tanpa bikin script mogok/crash
+    local screenGui = playerGui:FindFirstChild("ScreenGui") or playerGui:FindFirstChildOfClass("ScreenGui")
+    if not screenGui then return "" end
+    
+    local topBar = screenGui:FindFirstChild("TopBar")
+    local question = topBar and topBar:FindFirstChild("Question")
+    local questionLabel = question and question:FindFirstChild("QuestionLabel")
+    
+    if not questionLabel then return "" end
+    
+    local text = questionLabel.Text
+    if not text or text == "" then return "" end
+    
+    -- Mengambil 1 huruf perintah di layar
     local letter = text:match("starting with (%a)") or text:match("(%a)$") or text
     return letter:lower()
 end
