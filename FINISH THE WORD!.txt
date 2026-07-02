@@ -15,7 +15,12 @@ local TweenService = cloneref(game:GetService("TweenService"))
 local LogService = cloneref(game:GetService("LogService"))
 local GuiService = cloneref(game:GetService("GuiService"))
 
-local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or nil
+if not request then
+    request = function(options)
+        return { Body = game:HttpGet(options.Url) }
+    end
+end
 
 local TOGGLE_KEY = Enum.KeyCode.RightControl
 local MIN_CPM = 50
