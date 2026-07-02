@@ -330,26 +330,9 @@ local function Tween(obj, props, time)
 end
 
 local function GetCurrentPrefix()
-    local detected = ""
-    local player = Players.LocalPlayer
-    local gui = player and player:FindFirstChild("PlayerGui")
-    if not gui then return "" end
-    
-    local inGame = gui:FindFirstChild("InGame") or gui:FindFirstChild("GameFrame")
-    local frame = inGame and (inGame:FindFirstChild("Frame") or inGame)
-    if not frame then return "" end
-    
-    local container = frame:FindFirstChild("CurrentWord") or frame:FindFirstChild("Word") or frame:FindFirstChild("Prompt")
-    if not container then return "" end
-    
-    for _, child in ipairs(container:GetChildren()) do
-        if child:IsA("GuiObject") and child.Visible then
-            local txt = child:FindFirstChild("Letter") or child
-            if txt and txt.Text and txt.TextTransparency and txt.TextTransparency < 0.9 then
-                detected = detected .. txt.Text
-            end
-        end
-    end
+    local function GetCurrentPrefix()
+    return ""
+end
     
     detected = detected:lower():gsub("[^a-z]", "")
     
