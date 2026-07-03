@@ -344,15 +344,10 @@ local function GetCurrentGameWord()
         local label = question and question:FindFirstChild("QuestionLabel")
 
         local textObj = label or question
-        if not textObj or not textObj.Text then 
-            return "", false 
-        end
+        if not textObj or not textObj.Text then return "", false end
 
         local text = textObj.Text
-        local letter = text:match("starting with:%s*([A-Za-z])") 
-                    or text:match("with:%s*([A-Za-z])")
-                    or text:match("(%a)")
-
+        local letter = text:match("starting with:%s*([A-Za-z])") or text:match("with:%s*([A-Za-z])") or text:match("(%a)")
         local detected = letter and letter:lower() or ""
         local censored = text:find("#") or text:find("%*")
 
@@ -382,7 +377,6 @@ local function GetTurnInfo()
         if textObj and textObj.Text then
             local text = textObj.Text
             local player = Players.LocalPlayer
-
             if text:find(player.Name) or text:find(player.DisplayName) then
                 local char = text:match("starting with:%s*([A-Za-z])") or text:match("with:%s*([A-Za-z])")
                 return true, char
