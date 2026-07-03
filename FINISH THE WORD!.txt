@@ -43,6 +43,39 @@ local THEME = {
 local function ColorToRGB(c)
     return string.format("%d,%d,%d", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255))
 end
+-- === NEW: MULTI-PREFIX DETECTION FOR FINISH THE WORD ===
+local function GetCurrentPrefix()
+    local detected = ""
+    local player = Players.LocalPlayer
+    local gui = player and player:FindFirstChild("PlayerGui")
+    if not gui then return "" end
+
+    -- Cari container kata (recursive search)
+    local container = gui:FindFirstChild("CurrentWord", true) 
+                   or gui:FindFirstChild("Word", true)
+                   or gui:FindFirstChild("Prompt", true)
+                   or gui:FindFirstChild("InGame", true)
+
+    if not container then return "" end
+
+    for _, child in ipairs(container:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            local txt = child.Text
+            if txt and #txt > 0 and txt:match("%a") then
+                detected = detected .. txt:lower()
+            end
+        end
+    end
+
+    detected = detected:gsub("[^a-z]", "")
+    
+    -- Ambil maksimal 3 huruf terakhir
+    if #detected > 3 then
+        detected = detected:sub(-3)
+    end
+
+    return detected
+end
 
 local ConfigFile = "WordHelper_Config.json"
 local Config = {
