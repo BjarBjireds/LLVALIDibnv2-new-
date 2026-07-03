@@ -2549,8 +2549,6 @@ runConn = RunService.RenderStepped:Connect(function()
         local now = tick()
         local player = Players.LocalPlayer
         local gui = player and player:FindFirstChild("PlayerGui")
-        local detected, censored = GetCurrentGameWord()
-local isMyTurn, requiredLetter = GetTurnInfo()
 
         if isTyping and (tick() - lastTypingStart) > 15 then
             isTyping = false
@@ -2559,19 +2557,21 @@ local isMyTurn, requiredLetter = GetTurnInfo()
             StatusText.TextColor3 = THEME.Warning
         end
         
+        -- Deteksi apakah di dalam round
         local isVisible = false
         local screenGui = gui and gui:FindFirstChild("ScreenGui")
-        
         if screenGui then
             local topBar = screenGui:FindFirstChild("TopBar")
             if topBar then
-                isVisible = true  -- TopBar muncul = sedang di round
+                isVisible = true
             end
         end
 
+        -- Timer & Stats (disesuaikan)
         local seconds = nil
         if isVisible then
-            local circle = frame:FindFirstChild("Circle")
+            -- Coba cari timer (kalau ada)
+            local circle = screenGui:FindFirstChild("Circle", true) or gui:FindFirstChild("Circle", true)
             local timerLbl = circle and circle:FindFirstChild("Timer") and circle.Timer:FindFirstChild("Seconds")
             
             if timerLbl then
@@ -2580,8 +2580,11 @@ local isMyTurn, requiredLetter = GetTurnInfo()
                 
                 StatsData.Frame.Visible = true
                 StatsData.Timer.Text = timeText
-                if seconds and seconds < 3 then StatsData.Timer.TextColor3 = Color3.fromRGB(255, 80, 80)
-                else StatsData.Timer.TextColor3 = THEME.Text end
+                if seconds and seconds < 3 then 
+                    StatsData.Timer.TextColor3 = Color3.fromRGB(255, 80, 80)
+                else 
+                    StatsData.Timer.TextColor3 = THEME.Text 
+                end
             end
         else
             StatsData.Frame.Visible = false
