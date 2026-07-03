@@ -15,12 +15,7 @@ local TweenService = cloneref(game:GetService("TweenService"))
 local LogService = cloneref(game:GetService("LogService"))
 local GuiService = cloneref(game:GetService("GuiService"))
 
-local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or nil
-if not request then
-    request = function(options)
-        return { Body = game:HttpGet(options.Url) }
-    end
-end
+local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
 
 local TOGGLE_KEY = Enum.KeyCode.RightControl
 local MIN_CPM = 50
@@ -42,39 +37,6 @@ local THEME = {
 
 local function ColorToRGB(c)
     return string.format("%d,%d,%d", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255))
-end
--- === NEW: MULTI-PREFIX DETECTION FOR FINISH THE WORD ===
-local function GetCurrentPrefix()
-    local detected = ""
-    local player = Players.LocalPlayer
-    local gui = player and player:FindFirstChild("PlayerGui")
-    if not gui then return "" end
-
-    -- Cari container kata (recursive search)
-    local container = gui:FindFirstChild("CurrentWord", true) 
-                   or gui:FindFirstChild("Word", true)
-                   or gui:FindFirstChild("Prompt", true)
-                   or gui:FindFirstChild("InGame", true)
-
-    if not container then return "" end
-
-    for _, child in ipairs(container:GetDescendants()) do
-        if child:IsA("TextLabel") or child:IsA("TextButton") then
-            local txt = child.Text
-            if txt and #txt > 0 and txt:match("%a") then
-                detected = detected .. txt:lower()
-            end
-        end
-    end
-
-    detected = detected:gsub("[^a-z]", "")
-    
-    -- Ambil maksimal 3 huruf terakhir
-    if #detected > 3 then
-        detected = detected:sub(-3)
-    end
-
-    return detected
 end
 
 local ConfigFile = "WordHelper_Config.json"
@@ -370,32 +332,28 @@ end
 local function GetCurrentPrefix()
     local detected = ""
     local player = Players.LocalPlayer
-    if not player then return "" end
+    local gui = player and player:FindFirstChild("PlayerGui")
+    if not gui then return "" end
     
-    local playerGui = player:FindFirstChild("PlayerGui")
-    if not playerGui then return "" end
+    local inGame = gui:FindFirstChild("InGame") or gui:FindFirstChild("GameFrame")
+    local frame = inGame and (inGame:FindFirstChild("Frame") or inGame)
+    if not frame then return "" end
     
-    -- Cari container kata di game Finish the Word
-    for _, gui in ipairs(playerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            for _, frame in ipairs(gui:GetDescendants()) do
-                if frame.Name == "CurrentWord" or frame.Name == "Word" or frame.Name == "Prompt" or frame.Name == "Question" then
-                    for _, child in ipairs(frame:GetDescendants()) do
-                        if child:IsA("TextLabel") or child:IsA("TextButton") then
-                            local txt = child.Text or ""
-                            if txt:match("%a") then
-                                detected = detected .. txt:lower()
-                            end
-                        end
-                    end
-                end
+    local container = frame:FindFirstChild("CurrentWord") or frame:FindFirstChild("Word") or frame:FindFirstChild("Prompt")
+    if not container then return "" end
+    
+    for _, child in ipairs(container:GetChildren()) do
+        if child:IsA("GuiObject") and child.Visible then
+            local txt = child:FindFirstChild("Letter") or child
+            if txt and txt.Text and txt.TextTransparency and txt.TextTransparency < 0.9 then
+                detected = detected .. txt.Text
             end
         end
     end
     
-    detected = detected:gsub("[^a-z]", "")
+    detected = detected:lower():gsub("[^a-z]", "")
     
-    -- Ambil 1-3 huruf terakhir (mekanik game kamu)
+    -- Ambil maksimal 3 huruf terakhir sesuai mekanik game kamu
     if #detected > 3 then
         detected = detected:sub(-3)
     end
@@ -403,36 +361,25 @@ local function GetCurrentPrefix()
     return detected
 end
 
-    local function GetCurrentGameWord()
-    local localPlayer = game:GetService("Players").LocalPlayer
-    if not localPlayer then return "" end
+    local QuestionLabel = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.TopBar.Question.QuestionLabel
+
+local function GetCurrentGameWord()
+    if not QuestionLabel then return "" end
+    local text = QuestionLabel.Text
     
-    local playerGui = localPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then return "" end
-    
-    -- Mencari ScreenGui dengan aman tanpa bikin script mogok/crash
-    local screenGui = playerGui:FindFirstChild("ScreenGui") or playerGui:FindFirstChildOfClass("ScreenGui")
-    if not screenGui then return "" end
-    
-    local topBar = screenGui:FindFirstChild("TopBar")
-    local question = topBar and topBar:FindFirstChild("Question")
-    local questionLabel = question and question:FindFirstChild("QuestionLabel")
-    
-    if not questionLabel then return "" end
-    
-    local text = questionLabel.Text
-    if not text or text == "" then return "" end
-    
-    -- Mengambil 1 huruf perintah di layar
+    -- Mengambil 1 huruf perintah di layar (misal "starting with Z" diambil huruf Z nya saja)
     local letter = text:match("starting with (%a)") or text:match("(%a)$") or text
     return letter:lower()
 end
 
-local function GetTurnInfo()
-    -- Memaksa script agar selalu menganggap game sedang berjalan 
-    -- supaya real-time search-nya aktif terus sepanjang waktu
-    return true, true
-end
+local function GetTurnInfo(providedFrame)
+    if isMyTurnLogDetected then
+        if tick() < turnExpiryTime then
+            return true, logRequiredLetters
+        else
+            isMyTurnLogDetected = false
+        end
+    end
 
     local frame = providedFrame
     if not frame then
@@ -2251,84 +2198,74 @@ end
 
 UpdateList = function(detectedText, requiredLetter)
     local matches = {}
-    local searchPrefix = detectedText or ""
+    local searchPrefix = detectedText
     local isBacktracked = false
     local manualSearch = false
 
-    if SearchBox and SearchBox.Text and SearchBox.Text ~= "" and SearchBox.Text ~= "Search words..." then
+    if SearchBox and SearchBox.Text ~= "" then
         searchPrefix = SearchBox.Text:lower():gsub("[%s%c]+", "")
         manualSearch = true
+        if requiredLetter and searchPrefix:sub(1,1) ~= requiredLetter:sub(1,1):lower() then
+             requiredLetter = nil
+        end
     end
 
     if not manualSearch and requiredLetter and #requiredLetter > 0 then
-        searchPrefix = requiredLetter:lower()
+        local reqLen = GetMatchLength(requiredLetter, searchPrefix)
+        if reqLen == #searchPrefix and #requiredLetter > #searchPrefix then
+             searchPrefix = requiredLetter
+        end
     end
-
+    
     local firstChar = searchPrefix:sub(1,1)
-    local bucket = (firstChar and Buckets and Buckets[firstChar]) or Words
+    if firstChar == "#" then firstChar = nil end
 
-    -- Collect matches
-    for _, word in ipairs(bucket) do
-        if not Blacklist[word] and not UsedWords[word] then
-            if #word > #searchPrefix and word:sub(1, #searchPrefix) == searchPrefix then
-                table.insert(matches, word)
-            end
-        end
+    if (not firstChar or firstChar == "") and requiredLetter then
+        firstChar = requiredLetter:sub(1,1):lower()
     end
-
-    -- Sorting
-    if sortMode == "Shortest" then
-        table.sort(matches, function(a,b) return #a < #b end)
-    elseif sortMode == "Longest" then
-        table.sort(matches, function(a,b) return #a > #b end)
-    elseif sortMode == "Killer" then
-        table.sort(matches, function(a,b)
-            local sa = GetKillerScore(a)
-            local sb = GetKillerScore(b)
-            if sa == sb then return #a < #b end
-            return sa > sb
-        end)
-    end
-
-    -- Batasi jumlah
-    if #matches > 30 then
-        for i = #matches, 31, -1 do table.remove(matches, i) end
-    end
-
-    local displayList = {}
-    for i = 1, math.min(30, #matches) do 
-        table.insert(displayList, matches[i]) 
-    end
-
-    -- Update UI Buttons (bagian ini biarkan sesuai script kamu)
-    for i = 1, math.max(#displayList, #ButtonCache) do
-        local w = displayList[i]
-        local btn = ButtonCache[i]
-
-        if w then
-            if not btn then
-                -- Kode pembuatan button kamu tetap
-            else
-                btn.Visible = true
-                ButtonData[btn] = {word = w, detected = detectedText}
-                local lbl = btn:FindFirstChild("Label")
-                if lbl then lbl.Text = w end
-            end
-        else
-            if btn then btn.Visible = false end
-        end
-    end
-
-    ScrollList.CanvasSize = UDim2.new(0,0,0, UIListLayout.AbsoluteContentSize.Y)
-
-    if #displayList > 0 then
-        currentBestMatch = displayList[1]
+    
+    local bucket
+    if firstChar and firstChar ~= "" and Buckets then
+        bucket = Buckets[firstChar] or {}
     else
-        currentBestMatch = nil
+        bucket = Words
     end
+    
+    local function CollectMatches(prefix, tryFallbackLengths)
+        local exacts = {}
+        local fallbackExacts = {}
+        local partials = {}
+        local maxPartialLen = 0
+        local limit = 100
+        
+        if bucket then
+            local checkWord = function(w)
+                if Blacklist[w] or UsedWords[w] then return end
+                
+                -- Check for main list filtering (suffix/length)
+                if suffixMode ~= "" and w:sub(-#suffixMode) ~= suffixMode then return end
+                
+                local isLengthMatch = true
+                if not tryFallbackLengths and lengthMode > 0 then
+                    isLengthMatch = (#w == lengthMode)
+                elseif tryFallbackLengths and lengthMode > 0 then
+                     isLengthMatch = true
+                end
+                
+                if not isLengthMatch then return end
 
-    StatusText.Text = "Prefix: " .. searchPrefix .. " | " .. #displayList .. " suggestions"
-end
+                local mLen = GetMatchLength(w, prefix)
+                if mLen == #prefix then
+                    table.insert(exacts, w)
+                elseif #exacts == 0 then
+                    if mLen > maxPartialLen then
+                        maxPartialLen = mLen
+                        partials = {w}
+                    elseif mLen == maxPartialLen and mLen > 0 then
+                        if #partials < 50 then table.insert(partials, w) end
+                    end
+                end
+            end
 
             local useBinary = true
             if prefix:find("#") or prefix:find("%*") then useBinary = false end
@@ -2403,21 +2340,21 @@ end
     end
     
     if #matches > 0 then
-    if sortMode == "Longest" then
-        table.sort(matches, function(a, b) return #a > #b end)
-    elseif sortMode == "Shortest" then
-        table.sort(matches, function(a, b) return #a < #b end)
-    elseif sortMode == "Killer" then
-        table.sort(matches, function(a, b)
-            local sA = GetKillerScore(a)
-            local sB = GetKillerScore(b)
-            if sA == sB then
-                return #a < #b
-            end
-            return sA > sB
-        end)
+        if sortMode == "Longest" then
+            table.sort(matches, function(a, b) return #a > #b end)
+        elseif sortMode == "Shortest" then
+            table.sort(matches, function(a, b) return #a < #b end)
+        elseif sortMode == "Killer" then
+            table.sort(matches, function(a, b)
+                local sA = GetKillerScore(a)
+                local sB = GetKillerScore(b)
+                if sA == sB then
+                    return #a < #b
+                end
+                return sA > sB
+            end)
+        end
     end
-end
     
     local displayList = {}
     local maxDisplay = 40
