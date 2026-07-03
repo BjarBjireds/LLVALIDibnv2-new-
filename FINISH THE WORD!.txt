@@ -330,7 +330,7 @@ local function Tween(obj, props, time)
 end
 
 local function GetCurrentGameWord()
-    pcall(function()
+    local success, result = pcall(function()
         local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
         if not playerGui then return "", false end
 
@@ -358,11 +358,11 @@ local function GetCurrentGameWord()
 
         return detected, censored
     end)
-    return "", false
+    return success and result or "", false
 end
 
 local function GetTurnInfo()
-    pcall(function()
+    local success, result = pcall(function()
         if isMyTurnLogDetected and tick() < turnExpiryTime then
             return true, logRequiredLetters
         end
@@ -388,8 +388,9 @@ local function GetTurnInfo()
                 return true, char
             end
         end
+        return false, nil
     end)
-    return false, nil
+    return success and result or false, nil
 end
 
 local function GetSecureParent()
