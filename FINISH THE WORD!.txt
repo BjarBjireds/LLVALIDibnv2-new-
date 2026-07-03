@@ -329,47 +329,52 @@ local function Tween(obj, props, time)
     TweenService:Create(obj, TweenInfo.new(time or 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props):Play()
 end
 
-local function GetCurrentPrefix()
+local function GetCurrentGameWord(providedFrame)
+    local frame = providedFrame
+    if not frame then
+        local player = Players.LocalPlayer
+        local gui = player and player:FindFirstChild("PlayerGui")
+        local inGame = gui and gui:FindFirstChild("InGame")
+        frame = inGame and inGame:FindFirstChild("Frame")
+    end
+
+    local container = frame and frame:FindFirstChild("CurrentWord")
+    if not container then return "", false end
+    
     local detected = ""
-    local player = Players.LocalPlayer
-    local gui = player and player:FindFirstChild("PlayerGui")
-    if not gui then return "" end
+    local censored = false
     
-    local inGame = gui:FindFirstChild("InGame") or gui:FindFirstChild("GameFrame")
-    local frame = inGame and (inGame:FindFirstChild("Frame") or inGame)
-    if not frame then return "" end
+    local children = container:GetChildren()
+    local letterData = {}
     
-    local container = frame:FindFirstChild("CurrentWord") or frame:FindFirstChild("Word") or frame:FindFirstChild("Prompt")
-    if not container then return "" end
-    
-    for _, child in ipairs(container:GetChildren()) do
-        if child:IsA("GuiObject") and child.Visible then
-            local txt = child:FindFirstChild("Letter") or child
-            if txt and txt.Text and txt.TextTransparency and txt.TextTransparency < 0.9 then
-                detected = detected .. txt.Text
+    for _, c in ipairs(children) do
+        if c:IsA("GuiObject") and c.Visible then
+            local txt = c:FindFirstChild("Letter")
+            if txt and txt:IsA("TextLabel") and txt.TextTransparency < 1 then
+                table.insert(letterData, {
+                    Obj = c,
+                    Txt = txt,
+                    X = c.AbsolutePosition.X,
+                    Id = tonumber(c.Name) or 0
+                })
             end
         end
     end
     
-    detected = detected:lower():gsub("[^a-z]", "")
-    
-    -- Ambil maksimal 3 huruf terakhir sesuai mekanik game kamu
-    if #detected > 3 then
-        detected = detected:sub(-3)
+    table.sort(letterData, function(a,b)
+        if math.abs(a.X - b.X) > 2 then
+            return a.X < b.X
+        end
+        return a.Id < b.Id
+    end)
+
+    for _, data in ipairs(letterData) do
+        local t = tostring(data.Txt.Text)
+        if t:find("#") or t:find("%*") then censored = true end
+        detected = detected .. t
     end
     
-    return detected
-end
-
-    local QuestionLabel = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.TopBar.Question.QuestionLabel
-
-local function GetCurrentGameWord()
-    if not QuestionLabel then return "" end
-    local text = QuestionLabel.Text
-    
-    -- Mengambil 1 huruf perintah di layar (misal "starting with Z" diambil huruf Z nya saja)
-    local letter = text:match("starting with (%a)") or text:match("(%a)$") or text
-    return letter:lower()
+    return detected:lower():gsub(" ", ""), censored
 end
 
 local function GetTurnInfo(providedFrame)
