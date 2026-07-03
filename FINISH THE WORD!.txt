@@ -330,62 +330,65 @@ local function Tween(obj, props, time)
 end
 
 local function GetCurrentGameWord()
-    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then return "", false end
+    pcall(function()
+        local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+        if not playerGui then return "", false end
 
-    local screenGui = playerGui:FindFirstChild("ScreenGui")
-    if not screenGui then return "", false end
+        local screenGui = playerGui:FindFirstChild("ScreenGui")
+        if not screenGui then return "", false end
 
-    local topBar = screenGui:FindFirstChild("TopBar")
-    if not topBar then return "", false end
+        local topBar = screenGui:FindFirstChild("TopBar")
+        if not topBar then return "", false end
 
-    local question = topBar:FindFirstChild("Question")
-    local label = question and question:FindFirstChild("QuestionLabel")
+        local question = topBar:FindFirstChild("Question")
+        local label = question and question:FindFirstChild("QuestionLabel")
 
-    local textObj = label or question
-    if not textObj or not textObj.Text then 
-        return "", false 
-    end
+        local textObj = label or question
+        if not textObj or not textObj.Text then 
+            return "", false 
+        end
 
-    local text = textObj.Text
-    local letter = text:match("starting with:%s*([A-Za-z])") 
-                or text:match("with:%s*([A-Za-z])")
-                or text:match("(%a)")
+        local text = textObj.Text
+        local letter = text:match("starting with:%s*([A-Za-z])") 
+                    or text:match("with:%s*([A-Za-z])")
+                    or text:match("(%a)")
 
-    local detected = letter and letter:lower() or ""
-    local censored = text:find("#") or text:find("%*")
+        local detected = letter and letter:lower() or ""
+        local censored = text:find("#") or text:find("%*")
 
-    return detected, censored
+        return detected, censored
+    end)
+    return "", false
 end
 
 local function GetTurnInfo()
-    if isMyTurnLogDetected and tick() < turnExpiryTime then
-        return true, logRequiredLetters
-    end
-
-    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then return false, nil end
-
-    local screenGui = playerGui:FindFirstChild("ScreenGui")
-    if not screenGui then return false, nil end
-
-    local topBar = screenGui:FindFirstChild("TopBar")
-    if not topBar then return false, nil end
-
-    local question = topBar:FindFirstChild("Question")
-    local textObj = question and (question:FindFirstChild("QuestionLabel") or question)
-
-    if textObj and textObj.Text then
-        local text = textObj.Text
-        local playerName = Players.LocalPlayer.Name
-        local displayName = Players.LocalPlayer.DisplayName
-
-        if text:find(playerName) or text:find(displayName) then
-            local char = text:match("starting with:%s*([A-Za-z])") or text:match("with:%s*([A-Za-z])")
-            return true, char
+    pcall(function()
+        if isMyTurnLogDetected and tick() < turnExpiryTime then
+            return true, logRequiredLetters
         end
-    end
 
+        local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+        if not playerGui then return false, nil end
+
+        local screenGui = playerGui:FindFirstChild("ScreenGui")
+        if not screenGui then return false, nil end
+
+        local topBar = screenGui:FindFirstChild("TopBar")
+        if not topBar then return false, nil end
+
+        local question = topBar:FindFirstChild("Question")
+        local textObj = question and (question:FindFirstChild("QuestionLabel") or question)
+
+        if textObj and textObj.Text then
+            local text = textObj.Text
+            local player = Players.LocalPlayer
+
+            if text:find(player.Name) or text:find(player.DisplayName) then
+                local char = text:match("starting with:%s*([A-Za-z])") or text:match("with:%s*([A-Za-z])")
+                return true, char
+            end
+        end
+    end)
     return false, nil
 end
 
