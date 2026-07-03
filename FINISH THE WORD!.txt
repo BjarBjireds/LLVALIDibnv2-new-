@@ -335,13 +335,34 @@ local function Tween(obj, props, time)
 end
 
 local function GetCurrentPrefix()
-    local function GetCurrentPrefix()
-    return ""
-end
+    local detected = ""
+    local player = Players.LocalPlayer
+    if not player then return "" end
     
-    detected = detected:lower():gsub("[^a-z]", "")
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if not playerGui then return "" end
     
-    -- Ambil maksimal 3 huruf terakhir sesuai mekanik game kamu
+    -- Cari container kata di game Finish the Word
+    for _, gui in ipairs(playerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            for _, frame in ipairs(gui:GetDescendants()) do
+                if frame.Name == "CurrentWord" or frame.Name == "Word" or frame.Name == "Prompt" or frame.Name == "Question" then
+                    for _, child in ipairs(frame:GetDescendants()) do
+                        if child:IsA("TextLabel") or child:IsA("TextButton") then
+                            local txt = child.Text or ""
+                            if txt:match("%a") then
+                                detected = detected .. txt:lower()
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    detected = detected:gsub("[^a-z]", "")
+    
+    -- Ambil 1-3 huruf terakhir (mekanik game kamu)
     if #detected > 3 then
         detected = detected:sub(-3)
     end
@@ -2197,74 +2218,84 @@ end
 
 UpdateList = function(detectedText, requiredLetter)
     local matches = {}
-    local searchPrefix = detectedText
+    local searchPrefix = detectedText or ""
     local isBacktracked = false
     local manualSearch = false
 
-    if SearchBox and SearchBox.Text ~= "" then
+    if SearchBox and SearchBox.Text and SearchBox.Text ~= "" and SearchBox.Text ~= "Search words..." then
         searchPrefix = SearchBox.Text:lower():gsub("[%s%c]+", "")
         manualSearch = true
-        if requiredLetter and searchPrefix:sub(1,1) ~= requiredLetter:sub(1,1):lower() then
-             requiredLetter = nil
-        end
     end
 
     if not manualSearch and requiredLetter and #requiredLetter > 0 then
-        local reqLen = GetMatchLength(requiredLetter, searchPrefix)
-        if reqLen == #searchPrefix and #requiredLetter > #searchPrefix then
-             searchPrefix = requiredLetter
+        searchPrefix = requiredLetter:lower()
+    end
+
+    local firstChar = searchPrefix:sub(1,1)
+    local bucket = (firstChar and Buckets and Buckets[firstChar]) or Words
+
+    -- Collect matches
+    for _, word in ipairs(bucket) do
+        if not Blacklist[word] and not UsedWords[word] then
+            if #word > #searchPrefix and word:sub(1, #searchPrefix) == searchPrefix then
+                table.insert(matches, word)
+            end
         end
     end
-    
-    local firstChar = searchPrefix:sub(1,1)
-    if firstChar == "#" then firstChar = nil end
 
-    if (not firstChar or firstChar == "") and requiredLetter then
-        firstChar = requiredLetter:sub(1,1):lower()
+    -- Sorting
+    if sortMode == "Shortest" then
+        table.sort(matches, function(a,b) return #a < #b end)
+    elseif sortMode == "Longest" then
+        table.sort(matches, function(a,b) return #a > #b end)
+    elseif sortMode == "Killer" then
+        table.sort(matches, function(a,b)
+            local sa = GetKillerScore(a)
+            local sb = GetKillerScore(b)
+            if sa == sb then return #a < #b end
+            return sa > sb
+        end)
     end
-    
-    local bucket
-    if firstChar and firstChar ~= "" and Buckets then
-        bucket = Buckets[firstChar] or {}
-    else
-        bucket = Words
-    end
-    
-    local function CollectMatches(prefix, tryFallbackLengths)
-        local exacts = {}
-        local fallbackExacts = {}
-        local partials = {}
-        local maxPartialLen = 0
-        local limit = 100
-        
-        if bucket then
-            local checkWord = function(w)
-                if Blacklist[w] or UsedWords[w] then return end
-                
-                -- Check for main list filtering (suffix/length)
-                if suffixMode ~= "" and w:sub(-#suffixMode) ~= suffixMode then return end
-                
-                local isLengthMatch = true
-                if not tryFallbackLengths and lengthMode > 0 then
-                    isLengthMatch = (#w == lengthMode)
-                elseif tryFallbackLengths and lengthMode > 0 then
-                     isLengthMatch = true
-                end
-                
-                if not isLengthMatch then return end
 
-                local mLen = GetMatchLength(w, prefix)
-                if mLen == #prefix then
-                    table.insert(exacts, w)
-                elseif #exacts == 0 then
-                    if mLen > maxPartialLen then
-                        maxPartialLen = mLen
-                        partials = {w}
-                    elseif mLen == maxPartialLen and mLen > 0 then
-                        if #partials < 50 then table.insert(partials, w) end
-                    end
-                end
+    -- Batasi jumlah
+    if #matches > 30 then
+        for i = #matches, 31, -1 do table.remove(matches, i) end
+    end
+
+    local displayList = {}
+    for i = 1, math.min(30, #matches) do 
+        table.insert(displayList, matches[i]) 
+    end
+
+    -- Update UI Buttons (bagian ini biarkan sesuai script kamu)
+    for i = 1, math.max(#displayList, #ButtonCache) do
+        local w = displayList[i]
+        local btn = ButtonCache[i]
+
+        if w then
+            if not btn then
+                -- Kode pembuatan button kamu tetap
+            else
+                btn.Visible = true
+                ButtonData[btn] = {word = w, detected = detectedText}
+                local lbl = btn:FindFirstChild("Label")
+                if lbl then lbl.Text = w end
             end
+        else
+            if btn then btn.Visible = false end
+        end
+    end
+
+    ScrollList.CanvasSize = UDim2.new(0,0,0, UIListLayout.AbsoluteContentSize.Y)
+
+    if #displayList > 0 then
+        currentBestMatch = displayList[1]
+    else
+        currentBestMatch = nil
+    end
+
+    StatusText.Text = "Prefix: " .. searchPrefix .. " | " .. #displayList .. " suggestions"
+end
 
             local useBinary = true
             if prefix:find("#") or prefix:find("%*") then useBinary = false end
@@ -2339,21 +2370,21 @@ UpdateList = function(detectedText, requiredLetter)
     end
     
     if #matches > 0 then
-        if sortMode == "Longest" then
-            table.sort(matches, function(a, b) return #a > #b end)
-        elseif sortMode == "Shortest" then
-            table.sort(matches, function(a, b) return #a < #b end)
-        elseif sortMode == "Killer" then
-            table.sort(matches, function(a, b)
-                local sA = GetKillerScore(a)
-                local sB = GetKillerScore(b)
-                if sA == sB then
-                    return #a < #b
-                end
-                return sA > sB
-            end)
-        end
+    if sortMode == "Longest" then
+        table.sort(matches, function(a, b) return #a > #b end)
+    elseif sortMode == "Shortest" then
+        table.sort(matches, function(a, b) return #a < #b end)
+    elseif sortMode == "Killer" then
+        table.sort(matches, function(a, b)
+            local sA = GetKillerScore(a)
+            local sB = GetKillerScore(b)
+            if sA == sB then
+                return #a < #b
+            end
+            return sA > sB
+        end)
     end
+end
     
     local displayList = {}
     local maxDisplay = 40
