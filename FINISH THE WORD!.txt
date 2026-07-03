@@ -329,20 +329,36 @@ local function Tween(obj, props, time)
     TweenService:Create(obj, TweenInfo.new(time or 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props):Play()
 end
 
-local function GetCurrentGameWord(providedFrame)
-    local frame = providedFrame
-    if not frame then
-        local player = Players.LocalPlayer
-        local gui = player and player:FindFirstChild("PlayerGui")
-        local inGame = gui and gui:FindFirstChild("InGame")
-        frame = inGame and inGame:FindFirstChild("Frame")
+local function GetCurrentGameWord()
+    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return "", false end
+
+    local screenGui = playerGui:FindFirstChild("ScreenGui")
+    if not screenGui then return "", false end
+
+    local topBar = screenGui:FindFirstChild("TopBar")
+    if not topBar then return "", false end
+
+    local question = topBar:FindFirstChild("Question")
+    local questionLabel = question and question:FindFirstChild("QuestionLabel")
+
+    local textObj = questionLabel or question
+    if not textObj or not textObj.Text then 
+        return "", false 
     end
 
-    local container = frame and frame:FindFirstChild("CurrentWord")
-    if not container then return "", false end
-    
-    local detected = ""
-    local censored = false
+    local text = textObj.Text
+
+    -- Ambil huruf yang diminta (starting with: X)
+    local letter = text:match("starting with:%s*([A-Za-z])") 
+                or text:match("with:%s*([A-Za-z])")
+                or text:match("^%s*([A-Za-z])")
+
+    local detected = letter and letter:lower() or ""
+    local censored = text:find("#") ~= nil or text:find("%*") ~= nil
+
+    return detected, censored
+end
     
     local children = container:GetChildren()
     local letterData = {}
@@ -377,7 +393,7 @@ local function GetCurrentGameWord(providedFrame)
     return detected:lower():gsub(" ", ""), censored
 end
 
-local function GetTurnInfo(providedFrame)
+local function GetTurnInfo()
     if isMyTurnLogDetected then
         if tick() < turnExpiryTime then
             return true, logRequiredLetters
@@ -386,24 +402,28 @@ local function GetTurnInfo(providedFrame)
         end
     end
 
-    local frame = providedFrame
-    if not frame then
-        local player = Players.LocalPlayer
-        local gui = player and player:FindFirstChild("PlayerGui")
-        local inGame = gui and gui:FindFirstChild("InGame")
-        frame = inGame and inGame:FindFirstChild("Frame")
-    end
+    local playerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return false, nil end
 
-    local typeLbl = frame and frame:FindFirstChild("Type")
-    
-    if typeLbl and typeLbl:IsA("TextLabel") then
-        local text = typeLbl.Text
+    local screenGui = playerGui:FindFirstChild("ScreenGui")
+    if not screenGui then return false, nil end
+
+    local topBar = screenGui:FindFirstChild("TopBar")
+    if not topBar then return false, nil end
+
+    local question = topBar:FindFirstChild("Question")
+    local textObj = question and (question:FindFirstChild("QuestionLabel") or question)
+
+    if textObj and textObj.Text then
+        local text = textObj.Text
         local player = Players.LocalPlayer
-        if text:sub(1, #player.Name) == player.Name or text:sub(1, #player.DisplayName) == player.DisplayName then
-            local char = text:match("starting with:%s*([A-Za-z])")
+        
+        if text:find(player.Name) or text:find(player.DisplayName) or text:find("Your turn") then
+            local char = text:match("starting with:%s*([A-Za-z])") or text:match("with:%s*([A-Za-z])")
             return true, char
         end
     end
+
     return false, nil
 end
 
@@ -2569,7 +2589,8 @@ runConn = RunService.RenderStepped:Connect(function()
         local now = tick()
         local player = Players.LocalPlayer
         local gui = player and player:FindFirstChild("PlayerGui")
-        local frame = gui and gui:FindFirstChild("InGame") and gui.InGame:FindFirstChild("Frame")
+        local detected, censored = GetCurrentGameWord()
+local isMyTurn, requiredLetter = GetTurnInfo()
 
         if isTyping and (tick() - lastTypingStart) > 15 then
             isTyping = false
@@ -2605,10 +2626,10 @@ runConn = RunService.RenderStepped:Connect(function()
             StatsData.Frame.Visible = false
         end
 
-        local isMyTurn, requiredLetter = GetTurnInfo(frame)
+        local isMyTurn, requiredLetter = GetTurnInfo()
         
         if (now - lastWordCheck) > 0.05 then
-            cachedDetected, cachedCensored = GetCurrentGameWord(frame)
+            cachedDetected, cachedCensored = GetCurrentGameWord()
             lastWordCheck = now
         end
         local detected, censored = cachedDetected, cachedCensored
@@ -2795,7 +2816,7 @@ runConn = RunService.RenderStepped:Connect(function()
         end
 
         if autoPlay and not isTyping and not isAutoPlayScheduled and currentBestMatch and detected == lastDetected then
-            local isMyTurnCheck, _ = GetTurnInfo(frame)
+            local isMyTurnCheck, _ = GetTurnInfo()
             if isMyTurnCheck then
                 isAutoPlayScheduled = true
                 local targetWord = currentBestMatch
