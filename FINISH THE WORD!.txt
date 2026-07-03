@@ -2562,11 +2562,12 @@ local isMyTurn, requiredLetter = GetTurnInfo()
         end
         
         local isVisible = false
-        if frame and frame.Parent then
-            if frame.Parent:IsA("ScreenGui") then
-                isVisible = frame.Parent.Enabled
-            elseif frame.Parent:IsA("GuiObject") then
-                isVisible = frame.Parent.Visible
+        local screenGui = gui and gui:FindFirstChild("ScreenGui")
+        
+        if screenGui then
+            local topBar = screenGui:FindFirstChild("TopBar")
+            if topBar then
+                isVisible = true  -- TopBar muncul = sedang di round
             end
         end
 
@@ -2713,7 +2714,7 @@ local isMyTurn, requiredLetter = GetTurnInfo()
             StatsData.Count.Text = "Words: " .. visCount .. "+"
         end
 
-        if not isVisible then
+                        if not isVisible then
             if StatusText.Text ~= "Not in Round" then
                 StatusText.Text = "Not in Round"
                 StatusText.TextColor3 = THEME.SubText
@@ -2722,10 +2723,29 @@ local isMyTurn, requiredLetter = GetTurnInfo()
                 StatsData.Count.Text = "Words: 0"
             end
             lastDetected = "---"
-        elseif detected ~= lastDetected or requiredLetter ~= lastRequiredLetter or forceUpdateList then
-            currentBestMatch = nil
-            lastDetected = detected
-            lastRequiredLetter = requiredLetter
+        else
+            -- === DI DALAM ROUND ===
+            local detected, censored = GetCurrentGameWord()
+            local isMyTurn, requiredLetter = GetTurnInfo()
+
+            if detected ~= lastDetected or requiredLetter ~= lastRequiredLetter or forceUpdateList then
+                currentBestMatch = nil
+                lastDetected = detected
+                lastRequiredLetter = requiredLetter
+                
+                -- Update tampilan
+                if detected == "" then
+                    StatusText.Text = "Waiting for word..."
+                    StatusText.TextColor3 = THEME.SubText
+                else
+                    StatusText.Text = "Input: " .. detected
+                    StatusText.TextColor3 = THEME.Accent
+                end
+                
+                listUpdatePending = true
+                forceUpdateList = false
+            end
+        end
             
             if detected == "" and not forceUpdateList then
                 StatusText.Text = "Waiting..."
